@@ -5,6 +5,8 @@ const cookieParser = require("cookie-parser");
 const authRoutes = require("./routes/auth.routes");
 const studentRoutes = require("./routes/student.routes");
 const classRoutes = require("./routes/class.routes");
+const sessionRoutes = require("./routes/session.routes");
+const attendanceRoutes = require("./routes/attendance.routes");
 
 dotenv.config();
 
@@ -24,5 +26,7 @@ app.get("/", (req, res) => {
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/students", studentRoutes);
 app.use("/api/v1/classes", classRoutes);
+app.use("/api/v1/sessions", sessionRoutes);
+app.use("/api/v1/attendance", attendanceRoutes);
 
 module.exports = app;
