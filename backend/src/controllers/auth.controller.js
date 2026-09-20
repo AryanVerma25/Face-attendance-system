@@ -1,6 +1,11 @@
 const bcrypt = require("bcryptjs");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
+
+const googleClient = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID
+);
 
 const register = async (req, res) => {
     try {
@@ -98,7 +103,79 @@ const login = async (req, res) => {
     }
 };
 
+const googleLogin = async (req, res) => {
+    try {
+        const { credential } = req.body;
+
+        if (!credential) {
+            return res.status(400).json({
+                message: "Google credential is required"
+            });
+        }
+
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+
+        const {
+            sub: googleId,
+            email,
+            name
+        } = payload;
+
+        if (!email || !googleId) {
+            return res.status(400).json({
+                message: "Invalid Google account data"
+            });
+        }
+
+        let user = await User.findOne({ googleId });
+
+        if (!user) {
+            user = await User.findOne({ email });
+
+            if (user) {
+                user.googleId = googleId;
+                user.authProvider = "google";
+                await user.save();
+            } else {
+                user = await User.create({
+                    name: name || "Google User",
+                    email,
+                    googleId,
+                    authProvider: "google",
+                    role: "student"
+                });
+            }
+        }
+
+        const token = generateToken(user._id);
+
+        res.status(200).json({
+            message: "Google login successful",
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+        console.error("Google login error:", error);
+
+        res.status(401).json({
+            message: "Google authentication failed"
+        });
+    }
+};
+
 module.exports = {
     register,
-    login
+    login,
+    googleLogin
 };

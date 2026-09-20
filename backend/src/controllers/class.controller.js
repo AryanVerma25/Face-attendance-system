@@ -128,9 +128,68 @@ const getClassDetails = async (req, res) => {
         });
     }
 };
+const getMyClasses = async (req, res) => {
+    try {
+        const Student = require("../models/Student");
+        const Session = require("../models/Session");
+
+        // Find the student profile of the logged-in user
+        const student = await Student.findOne({
+            user: req.user._id
+        });
+
+        if (!student) {
+            return res.status(404).json({
+                message: "Student profile not found"
+            });
+        }
+
+        // Find classes in which this student is enrolled
+        const classes = await Class.find({
+            students: student._id
+        }).populate("faculty", "name email");
+
+        // Find active sessions for those classes
+        const classIds = classes.map((classData) => classData._id);
+
+        const activeSessions = await Session.find({
+            class: { $in: classIds },
+            status: "active"
+        });
+
+        // Attach active session to each class
+        const classesWithSessions = classes.map((classData) => {
+
+            const activeSession = activeSessions.find(
+                (session) =>
+                    session.class.toString() === classData._id.toString()
+            );
+
+            return {
+                id: classData._id,
+                name: classData.name,
+                code: classData.code,
+                faculty: classData.faculty,
+                activeSession: activeSession || null
+            };
+        });
+
+        res.status(200).json({
+            message: "Student classes fetched successfully",
+            classes: classesWithSessions
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: "Server error",
+            error: error.message
+        });
+    }
+};
 
 module.exports = {
     createClass,
     addStudentToClass,
-    getClassDetails
+    getClassDetails,
+    getMyClasses
 };

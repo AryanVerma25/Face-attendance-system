@@ -3,9 +3,10 @@ const express = require("express");
 const {
     createClass,
     addStudentToClass,
-    getClassDetails
+    getClassDetails,
+    getMyClasses
 } = require("../controllers/class.controller");
- 
+
 const protect = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 
@@ -22,6 +23,12 @@ router.post(
     protect,
     authorize("faculty"),
     addStudentToClass
+);
+router.get(
+    "/my-classes",
+    protect,
+    authorize("student"),
+    getMyClasses
 );
 router.get(
     "/:classId",

@@ -1,0 +1,346 @@
+/* Attendance Page */
+
+.attendance-page {
+    min-height: 100vh;
+    background: #f7f8fa;
+    color: #111827;
+}
+
+
+/* Navbar */
+
+.attendance-navbar {
+    height: 72px;
+    padding: 0 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.attendance-logo {
+    font-size: 21px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.attendance-back {
+    border: none;
+    background: transparent;
+
+    font-size: 14px;
+    font-weight: 600;
+    color: #4b5563;
+
+    cursor: pointer;
+    padding: 8px 0;
+
+    transition: color 0.2s ease;
+}
+
+.attendance-back:hover {
+    color: #111827;
+}
+
+
+/* Main Content */
+
+.attendance-content {
+    width: min(900px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 60px 0 80px;
+}
+
+
+/* Header */
+
+.attendance-header {
+    text-align: center;
+    margin-bottom: 36px;
+}
+
+.attendance-tag {
+    margin: 0 0 10px;
+
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+
+    color: #6b7280;
+}
+
+.attendance-header h1 {
+    margin: 0;
+
+    font-size: 38px;
+    line-height: 1.15;
+    font-weight: 750;
+
+    color: #111827;
+}
+
+.attendance-header p:last-child {
+    margin: 14px auto 0;
+
+    max-width: 560px;
+
+    font-size: 15px;
+    line-height: 1.6;
+
+    color: #6b7280;
+}
+
+
+/* Loading */
+
+.attendance-loading {
+    width: 100%;
+    padding: 60px 20px;
+
+    text-align: center;
+
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+
+    color: #6b7280;
+}
+
+
+/* Main Attendance Card */
+
+.attendance-card {
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+
+    padding: 28px;
+
+    box-shadow:
+        0 10px 30px rgba(17, 24, 39, 0.06);
+}
+
+
+/* Camera */
+
+.camera-container {
+    width: 100%;
+    height: 480px;
+
+    overflow: hidden;
+
+    background: #111827;
+
+    border-radius: 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.attendance-video {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    transform: scaleX(-1);
+}
+
+.camera-placeholder {
+    text-align: center;
+    color: #ffffff;
+    padding: 30px;
+}
+
+.camera-icon {
+    width: 72px;
+    height: 72px;
+
+    margin: 0 auto 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+
+    font-size: 30px;
+
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.camera-placeholder h2 {
+    margin: 0 0 8px;
+
+    font-size: 20px;
+    font-weight: 650;
+}
+
+.camera-placeholder p {
+    margin: 0;
+
+    font-size: 14px;
+
+    color: rgba(255, 255, 255, 0.65);
+}
+
+
+/* Session Information */
+
+.attendance-session-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 16px;
+
+    margin-top: 22px;
+}
+
+.attendance-session-info > div {
+    padding: 16px 18px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+
+    background: #fafafa;
+}
+
+.attendance-session-info span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    color: #6b7280;
+}
+
+.attendance-session-info strong {
+    font-size: 15px;
+    font-weight: 650;
+
+    color: #111827;
+}
+
+.session-active {
+    display: flex !important;
+    align-items: center;
+    gap: 7px;
+}
+
+.session-active span {
+    width: 8px;
+    height: 8px;
+
+    margin: 0;
+
+    border-radius: 50%;
+
+    background: #16a34a;
+}
+
+
+/* Error */
+
+.attendance-error {
+    margin-top: 16px;
+    padding: 13px 15px;
+
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+
+    background: #fef2f2;
+
+    color: #b91c1c;
+
+    font-size: 14px;
+}
+
+
+/* Button */
+
+.start-camera-button {
+    width: 100%;
+
+    margin-top: 20px;
+    padding: 15px 20px;
+
+    border: none;
+    border-radius: 12px;
+
+    background: #111827;
+    color: #ffffff;
+
+    font-size: 15px;
+    font-weight: 650;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+}
+
+.start-camera-button:hover {
+    background: #1f2937;
+    transform: translateY(-1px);
+}
+
+.start-camera-button:active {
+    transform: translateY(0);
+}
+
+
+/* Note */
+
+.attendance-note {
+    margin: 15px 0 0;
+
+    text-align: center;
+
+    font-size: 13px;
+    line-height: 1.5;
+
+    color: #9ca3af;
+}
+
+
+/* Responsive */
+
+@media (max-width: 700px) {
+
+    .attendance-navbar {
+        height: 64px;
+        padding: 0 20px;
+    }
+
+    .attendance-content {
+        width: calc(100% - 24px);
+        padding: 35px 0 50px;
+    }
+
+    .attendance-header h1 {
+        font-size: 30px;
+    }
+
+    .attendance-card {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .camera-container {
+        height: 360px;
+        border-radius: 12px;
+    }
+
+    .attendance-session-info {
+        grid-template-columns: 1fr;
+    }
+}

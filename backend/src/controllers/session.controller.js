@@ -144,8 +144,72 @@ const closeSession = async (req, res) => {
         });
     }
 };
+const getSessionDetails = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+
+        const session = await Session.findById(sessionId)
+            .populate("class", "name code");
+
+        if (!session) {
+            return res.status(404).json({
+                message: "Session not found"
+            });
+        }
+
+        // Only allow students enrolled in this class
+        if (req.user.role === "student") {
+            const Student = require("../models/Student");
+
+            const student = await Student.findOne({
+                user: req.user._id
+            });
+
+            if (!student) {
+                return res.status(404).json({
+                    message: "Student profile not found"
+                });
+            }
+
+            const Class = require("../models/Class");
+
+            const classData = await Class.findById(session.class._id);
+
+            if (!classData) {
+                return res.status(404).json({
+                    message: "Class not found"
+                });
+            }
+
+            const isEnrolled = classData.students.some(
+                (studentId) =>
+                    studentId.toString() === student._id.toString()
+            );
+
+            if (!isEnrolled) {
+                return res.status(403).json({
+                    message: "You are not enrolled in this class"
+                });
+            }
+        }
+
+        res.status(200).json({
+            message: "Session details fetched successfully",
+            session
+        });
+
+    } catch (error) {
+        console.error("Get session details error:", error);
+
+        res.status(500).json({
+            message: "Server error",
+            error: error.message
+        });
+    }
+};
 
 module.exports = {
     startSession,
-    closeSession
+    closeSession,
+    getSessionDetails
 };

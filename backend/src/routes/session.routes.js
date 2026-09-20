@@ -2,7 +2,8 @@ const express = require("express");
 
 const {
     startSession,
-    closeSession
+    closeSession,
+    getSessionDetails
 } = require("../controllers/session.controller");
 
 const protect = require("../middleware/auth.middleware");
@@ -15,6 +16,13 @@ router.post(
     protect,
     authorize("faculty"),
     startSession
+);
+
+router.get(
+    "/:sessionId",
+    protect,
+    authorize("student", "faculty"),
+    getSessionDetails
 );
 
 router.patch(
