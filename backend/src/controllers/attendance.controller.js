@@ -5,29 +5,30 @@ const Session = require("../models/Session");
 const Student = require("../models/Student");
 const Class = require("../models/Class");
 const FaceEmbedding = require("../models/FaceEmbedding");
+const verificationStore = require("../services/verificationStore");
 
 const markAttendance = async (req, res) => {
     try {
-        const {
-            sessionId,
-            studentId,
-            faceRecognized,
-            livenessVerified,
-            confidence
-        } = req.body;
+        const { sessionId, image } = req.body;
 
-        if (
-            !sessionId ||
-            !studentId ||
-            faceRecognized === undefined ||
-            livenessVerified === undefined
-        ) {
+        if (!sessionId || !image) {
             return res.status(400).json({
-                message: "Session ID, student ID and verification details are required"
+                message: "Session ID and face image are required"
             });
         }
 
-        // 1. Find the session
+        // 1. Find logged-in student's profile
+        const student = await Student.findOne({
+            user: req.user._id
+        });
+
+        if (!student) {
+            return res.status(404).json({
+                message: "Student profile not found"
+            });
+        }
+
+        // 2. Find the session
         const session = await Session.findById(sessionId);
 
         if (!session) {
@@ -36,25 +37,14 @@ const markAttendance = async (req, res) => {
             });
         }
 
-        // 2. Session must be active
+        // 3. Session must be active
         if (session.status !== "active") {
             return res.status(400).json({
                 message: "Attendance session is not active"
             });
         }
 
-        // 3. Find the student
-        const student = await Student.findOne({
-            studentId
-        });
-
-        if (!student) {
-            return res.status(404).json({
-                message: "Student not found"
-            });
-        }
-
-        // 4. Check whether student belongs to this class
+        // 4. Check class
         const Class = require("../models/Class");
 
         const classData = await Class.findById(session.class);
@@ -65,6 +55,7 @@ const markAttendance = async (req, res) => {
             });
         }
 
+        // 5. Check student enrollment
         const isEnrolled = classData.students.some(
             (id) => id.toString() === student._id.toString()
         );
@@ -75,21 +66,48 @@ const markAttendance = async (req, res) => {
             });
         }
 
-        // 5. Face must be recognized
-        if (!faceRecognized) {
+        // 6. Get verification result created by
+        //    /face/liveness and /face/verify
+        const verificationKey = `${student._id}_${sessionId}`;
+
+        const verification =
+            verificationStore.get(verificationKey);
+
+        if (!verification) {
+            return res.status(400).json({
+                message: "Face verification has not been completed"
+            });
+        }
+
+        // 7. Verification must be recent
+        const verificationAge =
+            Date.now() - verification.createdAt;
+
+        const verificationExpiry = 2 * 60 * 1000; // 2 minutes
+
+        if (verificationAge > verificationExpiry) {
+            verificationStore.delete(verificationKey);
+
+            return res.status(400).json({
+                message: "Face verification expired. Please try again."
+            });
+        }
+
+        // 8. Face must be recognized
+        if (!verification.faceRecognized) {
             return res.status(400).json({
                 message: "Face could not be recognized"
             });
         }
 
-        // 6. Liveness must be verified
-        if (!livenessVerified) {
+        // 9. Liveness must be verified
+        if (!verification.livenessVerified) {
             return res.status(400).json({
                 message: "Liveness verification failed"
             });
         }
 
-        // 7. Prevent duplicate attendance
+        // 10. Prevent duplicate attendance
         const existingAttendance = await Attendance.findOne({
             session: sessionId,
             student: student._id
@@ -101,26 +119,31 @@ const markAttendance = async (req, res) => {
             });
         }
 
-        // 8. Create attendance record
+        // 11. Create attendance record
         const attendance = await Attendance.create({
             session: sessionId,
             student: student._id,
             class: session.class,
             status: "present",
             verification: {
-                faceRecognized,
-                livenessVerified,
-                confidence: confidence || 0
+                faceRecognized: verification.faceRecognized,
+                livenessVerified: verification.livenessVerified,
+                confidence: verification.confidence
             }
         });
 
-        res.status(201).json({
+        // 12. Remove temporary verification data
+        verificationStore.delete(verificationKey);
+
+        return res.status(201).json({
             message: "Attendance marked successfully",
             attendance
         });
 
     } catch (error) {
-        res.status(500).json({
+        console.error("Mark attendance error:", error);
+
+        return res.status(500).json({
             message: "Server error",
             error: error.message
         });
@@ -492,7 +515,7 @@ const markAttendanceByFace = async (req, res) => {
 
                 verification: {
                     faceRecognized: true,
-                    livenessVerified: false,
+                    livenessVerified: true,
                     confidence: similarity
                 }
             });

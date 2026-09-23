@@ -4,10 +4,16 @@ const Student = require("../models/Student");
 const FaceEmbedding = require("../models/FaceEmbedding");
 const Session = require("../models/Session");
 const Class = require("../models/Class");
+const verificationStore = require("../services/verificationStore");
+
+
+// ======================================================
+// ENROLL FACE
+// ======================================================
 
 const enrollFace = async (req, res) => {
     try {
-        // Find the logged-in student's profile
+        // Find logged-in student's profile
         const student = await Student.findOne({
             user: req.user._id
         });
@@ -18,7 +24,6 @@ const enrollFace = async (req, res) => {
             });
         }
 
-        // Face image/data will come from the frontend
         const { image } = req.body;
 
         if (!image) {
@@ -27,16 +32,7 @@ const enrollFace = async (req, res) => {
             });
         }
 
-        /*
-         * ML SERVICE
-         *
-         * This will be connected when the ML teammate
-         * implements the FastAPI enrollment endpoint.
-         *
-         * Expected endpoint:
-         * POST /api/v1/ml/enroll
-         */
-
+        // Send image to ML service
         const mlResponse = await axios.post(
             `${process.env.ML_SERVICE_URL}/api/v1/ml/enroll`,
             {
@@ -56,12 +52,14 @@ const enrollFace = async (req, res) => {
             });
         }
 
-        // Check whether a face embedding already exists
+        // Check whether face embedding already exists
         const existingEmbedding = await FaceEmbedding.findOne({
             student: student._id
         });
 
+        // Update existing embedding
         if (existingEmbedding) {
+
             existingEmbedding.embedding = embedding;
             existingEmbedding.model = model || "ArcFace";
 
@@ -72,14 +70,14 @@ const enrollFace = async (req, res) => {
             });
         }
 
-        // Create new face embedding
+        // Create new embedding
         const faceEmbedding = await FaceEmbedding.create({
             student: student._id,
             embedding,
             model: model || "ArcFace"
         });
 
-        res.status(201).json({
+        return res.status(201).json({
             message: "Face enrolled successfully",
             faceEmbedding
         });
@@ -87,12 +85,20 @@ const enrollFace = async (req, res) => {
     } catch (error) {
         console.error("Face enrollment error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             message: "Face enrollment failed",
-            error: error.response?.data?.message || error.message
+            error:
+                error.response?.data?.message ||
+                error.message
         });
     }
 };
+
+
+// ======================================================
+// GET FACE STATUS
+// ======================================================
+
 const getFaceStatus = async (req, res) => {
     try {
         const student = await Student.findOne({
@@ -109,22 +115,33 @@ const getFaceStatus = async (req, res) => {
             student: student._id
         });
 
-        res.status(200).json({
+        return res.status(200).json({
             enrolled: !!faceEmbedding
         });
 
     } catch (error) {
         console.error("Face status error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             message: "Unable to check face enrollment status"
         });
     }
 };
 
+
+// ======================================================
+// VERIFY FACE
+// ======================================================
+
 const verifyFace = async (req, res) => {
     try {
+
         const { image, sessionId } = req.body;
+
+
+        // --------------------------------------------------
+        // 1. Validate request
+        // --------------------------------------------------
 
         if (!image) {
             return res.status(400).json({
@@ -138,7 +155,11 @@ const verifyFace = async (req, res) => {
             });
         }
 
-        // Find logged-in student's profile
+
+        // --------------------------------------------------
+        // 2. Find logged-in student
+        // --------------------------------------------------
+
         const student = await Student.findOne({
             user: req.user._id
         });
@@ -149,18 +170,27 @@ const verifyFace = async (req, res) => {
             });
         }
 
-        // Check face enrollment
+
+        // --------------------------------------------------
+        // 3. Check face enrollment
+        // --------------------------------------------------
+
         const faceEmbedding = await FaceEmbedding.findOne({
             student: student._id
         });
 
         if (!faceEmbedding) {
             return res.status(400).json({
-                message: "Face is not enrolled. Please register your face first."
+                message:
+                    "Face is not enrolled. Please register your face first."
             });
         }
 
-        // Check session
+
+        // --------------------------------------------------
+        // 4. Check attendance session
+        // --------------------------------------------------
+
         const session = await Session.findById(sessionId);
 
         if (!session) {
@@ -175,7 +205,11 @@ const verifyFace = async (req, res) => {
             });
         }
 
-        // Check class
+
+        // --------------------------------------------------
+        // 5. Check class
+        // --------------------------------------------------
+
         const classData = await Class.findById(session.class);
 
         if (!classData) {
@@ -184,18 +218,88 @@ const verifyFace = async (req, res) => {
             });
         }
 
-        // Check whether student is enrolled in this class
+
+        // --------------------------------------------------
+        // 6. Check student enrollment in class
+        // --------------------------------------------------
+
         const isEnrolled = classData.students.some(
-            id => id.toString() === student._id.toString()
+            id =>
+                id.toString() ===
+                student._id.toString()
         );
 
         if (!isEnrolled) {
             return res.status(403).json({
-                message: "Student is not enrolled in this class"
+                message:
+                    "Student is not enrolled in this class"
             });
         }
 
-        // Send current camera image + stored embedding to ML service
+
+        // --------------------------------------------------
+        // 7. Get liveness verification
+        // --------------------------------------------------
+
+        const livenessKey =
+            `liveness_${student._id}`;
+
+        const livenessVerification =
+            verificationStore.get(livenessKey);
+
+
+        // Liveness must be completed first
+        if (!livenessVerification) {
+            return res.status(400).json({
+                message:
+                    "Liveness verification has not been completed"
+            });
+        }
+
+
+        // --------------------------------------------------
+        // 8. Check liveness expiry
+        // --------------------------------------------------
+
+        const livenessAge =
+            Date.now() -
+            livenessVerification.createdAt;
+
+        const verificationExpiry =
+            2 * 60 * 1000; // 2 minutes
+
+
+        if (livenessAge > verificationExpiry) {
+
+            verificationStore.delete(
+                livenessKey
+            );
+
+            return res.status(400).json({
+                message:
+                    "Liveness verification expired. Please try again."
+            });
+        }
+
+
+        // --------------------------------------------------
+        // 9. Check liveness result
+        // --------------------------------------------------
+
+        if (
+            livenessVerification.livenessVerified !== true
+        ) {
+            return res.status(400).json({
+                message:
+                    "Liveness verification failed"
+            });
+        }
+
+
+        // --------------------------------------------------
+        // 10. Send face to ML service
+        // --------------------------------------------------
+
         const mlResponse = await axios.post(
             `${process.env.ML_SERVICE_URL}/api/v1/ml/verify`,
             {
@@ -204,6 +308,7 @@ const verifyFace = async (req, res) => {
             }
         );
 
+
         const {
             success,
             matched,
@@ -211,48 +316,148 @@ const verifyFace = async (req, res) => {
             threshold
         } = mlResponse.data;
 
+
+        // --------------------------------------------------
+        // 11. Check ML response
+        // --------------------------------------------------
+
         if (!success) {
             return res.status(400).json({
-                message: "Face verification failed"
+                message:
+                    "Face verification failed"
             });
         }
 
+
+        // --------------------------------------------------
+        // 12. Check face match
+        // --------------------------------------------------
+
         if (!matched) {
             return res.status(401).json({
-                message: "Face does not match the enrolled student",
+                message:
+                    "Face does not match the enrolled student",
+
                 similarity,
                 threshold
             });
         }
 
+
+        // --------------------------------------------------
+        // 13. Store final verification
+        // --------------------------------------------------
+
+        const verificationKey =
+            `${student._id}_${sessionId}`;
+
+
+        const finalVerification = {
+            livenessVerified: true,
+            faceRecognized: true,
+            confidence: similarity,
+            createdAt: Date.now()
+        };
+
+
+        verificationStore.set(
+            verificationKey,
+            finalVerification
+        );
+
+
+        // --------------------------------------------------
+        // 14. Delete temporary liveness verification
+        // --------------------------------------------------
+
+        verificationStore.delete(
+            livenessKey
+        );
+
+
+        // --------------------------------------------------
+        // 15. Return success
+        // --------------------------------------------------
+
         return res.status(200).json({
-            message: "Face verified successfully",
+            message:
+                "Face verified successfully",
+
             verified: true,
-            studentId: student.studentId,
+
+            studentId:
+                student.studentId,
+
             similarity,
+
             threshold
         });
 
     } catch (error) {
-        console.error("Face verification error:", error);
 
-        res.status(500).json({
-            message: "Face verification failed",
-            error: error.response?.data?.detail ||
-                   error.response?.data?.message ||
-                   error.message
+        console.error(
+            "Face verification error:",
+            error
+        );
+
+        return res.status(500).json({
+            message:
+                "Face verification failed",
+
+            error:
+                error.response?.data?.detail ||
+                error.response?.data?.message ||
+                error.message
         });
     }
 };
+
+
+// ======================================================
+// VERIFY LIVENESS
+// ======================================================
+
 const verifyLiveness = async (req, res) => {
     try {
+
         const { images } = req.body;
 
-        if (!images || !Array.isArray(images) || images.length < 3) {
+
+        // --------------------------------------------------
+        // 1. Validate images
+        // --------------------------------------------------
+
+        if (
+            !images ||
+            !Array.isArray(images) ||
+            images.length < 3
+        ) {
             return res.status(400).json({
-                message: "At least 3 images are required for liveness verification"
+                message:
+                    "At least 3 images are required for liveness verification"
             });
         }
+
+
+        // --------------------------------------------------
+        // 2. Find logged-in student
+        // --------------------------------------------------
+
+        const student = await Student.findOne({
+            user: req.user._id
+        });
+
+        if (!student) {
+            return res.status(404).json({
+                message:
+                    "Student profile not found"
+            });
+        }
+
+
+        // --------------------------------------------------
+        // 3. Send frames to ML service
+        // --------------------------------------------------
 
         const response = await axios.post(
             `${process.env.ML_SERVICE_URL}/api/v1/ml/liveness`,
@@ -261,12 +466,43 @@ const verifyLiveness = async (req, res) => {
             }
         );
 
-        return res.status(200).json(response.data);
+
+        const result = response.data;
+
+
+        // --------------------------------------------------
+        // 4. Log ML result
+        // --------------------------------------------------
+
+
+        // --------------------------------------------------
+        // 5. Store liveness result temporarily
+        // --------------------------------------------------
+
+        verificationStore.set(
+            `liveness_${student._id}`,
+            {
+                livenessVerified:
+                    result.liveness === true,
+
+                createdAt:
+                    Date.now()
+            }
+        );
+
+
+        // --------------------------------------------------
+        // 6. Return ML result to frontend
+        // --------------------------------------------------
+
+        return res.status(200).json(result);
 
     } catch (error) {
+
         console.error(
             "LIVENESS ERROR:",
-            error.response?.data || error.message
+            error.response?.data ||
+            error.message
         );
 
         return res.status(
@@ -274,10 +510,16 @@ const verifyLiveness = async (req, res) => {
         ).json({
             message:
                 error.response?.data?.detail ||
+                error.response?.data?.message ||
                 "Liveness verification failed"
         });
     }
 };
+
+
+// ======================================================
+// EXPORTS
+// ======================================================
 
 module.exports = {
     enrollFace,
