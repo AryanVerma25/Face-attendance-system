@@ -1,6 +1,10 @@
+const axios = require("axios");
+
 const Attendance = require("../models/Attendance");
 const Session = require("../models/Session");
 const Student = require("../models/Student");
+const Class = require("../models/Class");
+const FaceEmbedding = require("../models/FaceEmbedding");
 
 const markAttendance = async (req, res) => {
     try {
@@ -310,9 +314,226 @@ const getMyAttendance = async (req, res) => {
         });
     }
 };
+const markAttendanceByFace = async (req, res) => {
+    try {
+        const { sessionId, image } = req.body;
+
+        // -----------------------------
+        // 1. Validate request
+        // -----------------------------
+
+        if (!sessionId) {
+            return res.status(400).json({
+                message: "Session ID is required"
+            });
+        }
+
+        if (!image) {
+            return res.status(400).json({
+                message: "Face image is required"
+            });
+        }
+
+
+        // -----------------------------
+        // 2. Find logged-in student
+        // -----------------------------
+
+        const student = await Student.findOne({
+            user: req.user._id
+        });
+
+        if (!student) {
+            return res.status(404).json({
+                message: "Student profile not found"
+            });
+        }
+
+
+        // -----------------------------
+        // 3. Check session
+        // -----------------------------
+
+        const session = await Session.findById(sessionId);
+
+        if (!session) {
+            return res.status(404).json({
+                message: "Session not found"
+            });
+        }
+
+        if (session.status !== "active") {
+            return res.status(400).json({
+                message: "Attendance session is not active"
+            });
+        }
+
+
+        // -----------------------------
+        // 4. Check class
+        // -----------------------------
+
+        const classData = await Class.findById(
+            session.class
+        );
+
+        if (!classData) {
+            return res.status(404).json({
+                message: "Class not found"
+            });
+        }
+
+
+        // -----------------------------
+        // 5. Check enrollment
+        // -----------------------------
+
+        const isEnrolled = classData.students.some(
+            id =>
+                id.toString() ===
+                student._id.toString()
+        );
+
+        if (!isEnrolled) {
+            return res.status(403).json({
+                message:
+                    "Student is not enrolled in this class"
+            });
+        }
+
+
+        // -----------------------------
+        // 6. Check face enrollment
+        // -----------------------------
+
+        const faceEmbedding =
+            await FaceEmbedding.findOne({
+                student: student._id
+            });
+
+        if (!faceEmbedding) {
+            return res.status(400).json({
+                message:
+                    "Face is not enrolled. Please register your face first."
+            });
+        }
+
+
+        // -----------------------------
+        // 7. Check duplicate attendance
+        // -----------------------------
+
+        const existingAttendance =
+            await Attendance.findOne({
+                session: sessionId,
+                student: student._id
+            });
+
+        if (existingAttendance) {
+            return res.status(409).json({
+                message:
+                    "Attendance already marked for this student"
+            });
+        }
+
+
+        // -----------------------------
+        // 8. Send image to ML service
+        // -----------------------------
+
+        const mlResponse = await axios.post(
+            `${process.env.ML_SERVICE_URL}/api/v1/ml/verify`,
+            {
+                image,
+                embedding: faceEmbedding.embedding
+            }
+        );
+
+
+        const {
+            success,
+            matched,
+            similarity,
+            threshold
+        } = mlResponse.data;
+
+
+        // -----------------------------
+        // 9. Check ML result
+        // -----------------------------
+
+        if (!success) {
+            return res.status(400).json({
+                message:
+                    "Face verification failed"
+            });
+        }
+
+        if (!matched) {
+            return res.status(401).json({
+                message:
+                    "Face does not match the enrolled student",
+                similarity,
+                threshold
+            });
+        }
+
+
+        // -----------------------------
+        // 10. Create attendance
+        // -----------------------------
+
+        const attendance =
+            await Attendance.create({
+                session: sessionId,
+                student: student._id,
+                class: session.class,
+                status: "present",
+
+                verification: {
+                    faceRecognized: true,
+                    livenessVerified: false,
+                    confidence: similarity
+                }
+            });
+
+
+        // -----------------------------
+        // 11. Success response
+        // -----------------------------
+
+        return res.status(201).json({
+            message:
+                "Attendance marked successfully",
+            attendance,
+            verification: {
+                faceRecognized: true,
+                similarity,
+                threshold
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Face attendance error:",
+            error
+        );
+
+        return res.status(500).json({
+            message:
+                "Unable to mark attendance",
+            error:
+                error.response?.data?.detail ||
+                error.response?.data?.message ||
+                error.message
+        });
+    }
+};
 
 module.exports = {
     markAttendance,
+    markAttendanceByFace,
     getSessionAttendance,
     getStudentAttendance,
     getStudentAttendanceSummary,

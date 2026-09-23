@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import api from "../services/api";
 import "../styles/dashboard.css";
 
@@ -11,6 +12,8 @@ function Dashboard() {
     const [attendance, setAttendance] = useState([]);
     const [student, setStudent] = useState(null);
     const [classes, setClasses] = useState([]);
+    const [faceEnrolled, setFaceEnrolled] = useState(false);
+
     const [loading, setLoading] = useState(true);
     const [classesLoading, setClassesLoading] = useState(true);
     const [error, setError] = useState("");
@@ -18,18 +21,49 @@ function Dashboard() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [attendanceResponse, classesResponse] =
-                    await Promise.all([
-                        api.get("/attendance/me"),
-                        api.get("/classes/my-classes")
-                    ]);
+                // First check if student profile exists
+                const profileResponse = await api.get("/students/me");
 
-                setAttendance(attendanceResponse.data.attendance || []);
-                setStudent(attendanceResponse.data.student);
-                setClasses(classesResponse.data.classes || []);
+                setStudent(profileResponse.data.student);
+
+                // Fetch dashboard data + face enrollment status
+                const [
+                    attendanceResponse,
+                    classesResponse,
+                    faceStatusResponse
+                ] = await Promise.all([
+                    api.get("/attendance/me"),
+                    api.get("/classes/my-classes"),
+                    api.get("/face/status")
+                ]);
+
+                setAttendance(
+                    attendanceResponse.data.attendance || []
+                );
+
+                setClasses(
+                    classesResponse.data.classes || []
+                );
+
+                setFaceEnrolled(
+                    faceStatusResponse.data.enrolled
+                );
 
             } catch (error) {
-                console.error("Failed to fetch dashboard data:", error);
+                console.error(
+                    "Failed to fetch dashboard data:",
+                    error
+                );
+
+                // Student profile does not exist
+                if (
+                    error.response?.status === 404 &&
+                    error.response?.data?.message ===
+                        "Student profile not found"
+                ) {
+                    navigate("/student-profile");
+                    return;
+                }
 
                 setError(
                     error.response?.data?.message ||
@@ -42,7 +76,8 @@ function Dashboard() {
         };
 
         fetchDashboardData();
-    }, []);
+    }, [navigate]);
+
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -50,6 +85,34 @@ function Dashboard() {
 
         navigate("/login");
     };
+
+
+    const handleQuickAttendance = () => {
+        // Face must be enrolled first
+        if (!faceEnrolled) {
+            navigate("/face-enrollment");
+            return;
+        }
+
+        // Find an active class
+        const activeClass = classes.find(
+            (classData) => classData.activeSession
+        );
+
+        // No active attendance session
+        if (!activeClass) {
+            alert(
+                "There is no active attendance session right now."
+            );
+            return;
+        }
+
+        // Open attendance for the active session
+        navigate(
+            `/attendance?sessionId=${activeClass.activeSession._id}`
+        );
+    };
+
 
     const totalClasses = attendance.length;
 
@@ -64,7 +127,9 @@ function Dashboard() {
     const attendancePercentage =
         totalClasses === 0
             ? 0
-            : Math.round((presentClasses / totalClasses) * 100);
+            : Math.round(
+                (presentClasses / totalClasses) * 100
+            );
 
     const recentAttendance = attendance.slice(0, 5);
 
@@ -72,10 +137,12 @@ function Dashboard() {
         (classData) => classData.activeSession
     );
 
+
     return (
         <div className="dashboard-page">
 
             {/* Navbar */}
+
             <nav className="dashboard-navbar">
 
                 <div className="dashboard-logo">
@@ -88,12 +155,19 @@ function Dashboard() {
                     <div className="dashboard-user">
 
                         <div className="dashboard-avatar">
-                            {user?.name?.charAt(0)?.toUpperCase() || "S"}
+                            {user?.name
+                                ?.charAt(0)
+                                ?.toUpperCase() || "S"}
                         </div>
 
                         <div>
-                            <strong>{user?.name || "Student"}</strong>
-                            <span>Student</span>
+                            <strong>
+                                {user?.name || "Student"}
+                            </strong>
+
+                            <span>
+                                Student
+                            </span>
                         </div>
 
                     </div>
@@ -109,9 +183,11 @@ function Dashboard() {
 
             </nav>
 
+
             <main className="dashboard-content">
 
                 {/* Welcome */}
+
                 <section className="dashboard-header">
 
                     <div>
@@ -121,7 +197,8 @@ function Dashboard() {
                         </p>
 
                         <h1>
-                            Welcome back, {user?.name || "Student"} 👋
+                            Welcome back,{" "}
+                            {user?.name || "Student"} 👋
                         </h1>
 
                         <p>
@@ -133,31 +210,40 @@ function Dashboard() {
 
                 </section>
 
+
                 {/* Student information */}
+
                 {student && (
                     <div className="student-info">
 
                         <div className="student-info-item">
                             <span>Student ID</span>
-                            <strong>{student.studentId}</strong>
+                            <strong>
+                                {student.studentId}
+                            </strong>
                         </div>
 
                         <div className="student-info-divider"></div>
 
                         <div className="student-info-item">
                             <span>Department</span>
-                            <strong>{student.department}</strong>
+                            <strong>
+                                {student.department}
+                            </strong>
                         </div>
 
                         <div className="student-info-divider"></div>
 
                         <div className="student-info-item">
                             <span>Semester</span>
-                            <strong>{student.semester}</strong>
+                            <strong>
+                                {student.semester}
+                            </strong>
                         </div>
 
                     </div>
                 )}
+
 
                 {error && (
                     <p className="dashboard-error">
@@ -165,7 +251,9 @@ function Dashboard() {
                     </p>
                 )}
 
+
                 {/* Statistics */}
+
                 <section className="dashboard-cards">
 
                     <div className="dashboard-card attendance-card">
@@ -196,6 +284,7 @@ function Dashboard() {
 
                     </div>
 
+
                     <div className="dashboard-card">
 
                         <div className="card-icon classes-icon">
@@ -209,7 +298,9 @@ function Dashboard() {
                             </span>
 
                             <strong>
-                                {loading ? "--" : totalClasses}
+                                {loading
+                                    ? "--"
+                                    : totalClasses}
                             </strong>
 
                             <p>
@@ -219,6 +310,7 @@ function Dashboard() {
                         </div>
 
                     </div>
+
 
                     <div className="dashboard-card">
 
@@ -233,7 +325,9 @@ function Dashboard() {
                             </span>
 
                             <strong>
-                                {loading ? "--" : presentClasses}
+                                {loading
+                                    ? "--"
+                                    : presentClasses}
                             </strong>
 
                             <p>
@@ -243,6 +337,7 @@ function Dashboard() {
                         </div>
 
                     </div>
+
 
                     <div className="dashboard-card">
 
@@ -257,7 +352,9 @@ function Dashboard() {
                             </span>
 
                             <strong>
-                                {loading ? "--" : absentClasses}
+                                {loading
+                                    ? "--"
+                                    : absentClasses}
                             </strong>
 
                             <p>
@@ -270,27 +367,37 @@ function Dashboard() {
 
                 </section>
 
+
                 {/* Main grid */}
+
                 <div className="dashboard-grid">
 
                     {/* Attendance overview */}
+
                     <section className="dashboard-panel attendance-overview">
 
                         <div className="panel-header">
 
                             <div>
-                                <h2>Attendance Overview</h2>
-                                <p>Your current attendance performance</p>
+                                <h2>
+                                    Attendance Overview
+                                </h2>
+
+                                <p>
+                                    Your current attendance performance
+                                </p>
                             </div>
 
                         </div>
+
 
                         <div className="attendance-overview-content">
 
                             <div
                                 className="attendance-ring"
                                 style={{
-                                    "--attendance": `${attendancePercentage * 3.6}deg`
+                                    "--attendance":
+                                        `${attendancePercentage * 3.6}deg`
                                 }}
                             >
 
@@ -302,11 +409,14 @@ function Dashboard() {
                                             : `${attendancePercentage}%`}
                                     </strong>
 
-                                    <span>Attendance</span>
+                                    <span>
+                                        Attendance
+                                    </span>
 
                                 </div>
 
                             </div>
+
 
                             <div className="attendance-breakdown">
 
@@ -315,30 +425,47 @@ function Dashboard() {
                                     <span className="legend-dot present-dot"></span>
 
                                     <div>
-                                        <strong>{presentClasses}</strong>
-                                        <span>Present</span>
+                                        <strong>
+                                            {presentClasses}
+                                        </strong>
+
+                                        <span>
+                                            Present
+                                        </span>
                                     </div>
 
                                 </div>
+
 
                                 <div>
 
                                     <span className="legend-dot absent-dot"></span>
 
                                     <div>
-                                        <strong>{absentClasses}</strong>
-                                        <span>Absent</span>
+                                        <strong>
+                                            {absentClasses}
+                                        </strong>
+
+                                        <span>
+                                            Absent
+                                        </span>
                                     </div>
 
                                 </div>
+
 
                                 <div>
 
                                     <span className="legend-dot total-dot"></span>
 
                                     <div>
-                                        <strong>{totalClasses}</strong>
-                                        <span>Total</span>
+                                        <strong>
+                                            {totalClasses}
+                                        </strong>
+
+                                        <span>
+                                            Total
+                                        </span>
                                     </div>
 
                                 </div>
@@ -349,57 +476,109 @@ function Dashboard() {
 
                     </section>
 
+
                     {/* Quick actions */}
+
                     <section className="dashboard-panel quick-actions">
 
                         <div className="panel-header">
 
                             <div>
-                                <h2>Quick Actions</h2>
-                                <p>Access your FaceSecure services</p>
+                                <h2>
+                                    Quick Actions
+                                </h2>
+
+                                <p>
+                                    Access your FaceSecure services
+                                </p>
                             </div>
 
                         </div>
 
+
+                        {/* Face Enrollment / Attendance */}
+
                         <button
                             className="quick-action primary-action"
-                            onClick={() =>
-                                alert("Face attendance coming soon")
+                            onClick={
+                                faceEnrolled
+                                    ? handleQuickAttendance
+                                    : () =>
+                                        navigate(
+                                            "/face-enrollment"
+                                        )
                             }
                         >
-                            <span className="quick-action-icon">◉</span>
+
+                            <span className="quick-action-icon">
+                                {faceEnrolled ? "◉" : "◎"}
+                            </span>
 
                             <div>
-                                <strong>Mark Attendance</strong>
-                                <span>Verify your face securely</span>
+
+                                <strong>
+                                    {faceEnrolled
+                                        ? "Mark Attendance"
+                                        : "Register Face"}
+                                </strong>
+
+                                <span>
+                                    {faceEnrolled
+                                        ? "Verify your face securely"
+                                        : "Set up face verification"}
+                                </span>
+
                             </div>
 
-                            <span className="action-arrow">→</span>
+                            <span className="action-arrow">
+                                →
+                            </span>
+
                         </button>
+
 
                         <button className="quick-action">
 
-                            <span className="quick-action-icon">▣</span>
+                            <span className="quick-action-icon">
+                                ▣
+                            </span>
 
                             <div>
-                                <strong>My Classes</strong>
-                                <span>View your enrolled classes</span>
+                                <strong>
+                                    My Classes
+                                </strong>
+
+                                <span>
+                                    View your enrolled classes
+                                </span>
                             </div>
 
-                            <span className="action-arrow">→</span>
+                            <span className="action-arrow">
+                                →
+                            </span>
 
                         </button>
 
+
                         <button className="quick-action">
 
-                            <span className="quick-action-icon">▤</span>
+                            <span className="quick-action-icon">
+                                ▤
+                            </span>
 
                             <div>
-                                <strong>Attendance History</strong>
-                                <span>View all attendance records</span>
+                                <strong>
+                                    Attendance History
+                                </strong>
+
+                                <span>
+                                    View all attendance records
+                                </span>
                             </div>
 
-                            <span className="action-arrow">→</span>
+                            <span className="action-arrow">
+                                →
+                            </span>
 
                         </button>
 
@@ -407,22 +586,32 @@ function Dashboard() {
 
                 </div>
 
+
                 {/* Active classes */}
+
                 <section className="dashboard-panel classes-panel">
 
                     <div className="panel-header">
 
                         <div>
-                            <h2>My Classes</h2>
-                            <p>Your enrolled classes and active sessions</p>
+                            <h2>
+                                My Classes
+                            </h2>
+
+                            <p>
+                                Your enrolled classes and active sessions
+                            </p>
                         </div>
 
                         <span className="class-count">
                             {classes.length} class
-                            {classes.length !== 1 ? "es" : ""}
+                            {classes.length !== 1
+                                ? "es"
+                                : ""}
                         </span>
 
                     </div>
+
 
                     {classesLoading ? (
 
@@ -434,9 +623,13 @@ function Dashboard() {
 
                         <div className="empty-state">
 
-                            <div className="empty-state-icon">📚</div>
+                            <div className="empty-state-icon">
+                                📚
+                            </div>
 
-                            <strong>No classes found</strong>
+                            <strong>
+                                No classes found
+                            </strong>
 
                             <p>
                                 You are not enrolled in any classes yet.
@@ -475,6 +668,7 @@ function Dashboard() {
 
                                                 <span>
                                                     {classData.code}
+
                                                     {classData.faculty
                                                         ? ` • ${classData.faculty.name}`
                                                         : ""}
@@ -484,28 +678,53 @@ function Dashboard() {
 
                                         </div>
 
+
                                         <div className="class-status">
 
                                             {isActive ? (
-                                                <>
 
-                                                    <span className="active-badge">
-                                                        <span></span>
-                                                        Attendance Open
-                                                    </span>
+                                                faceEnrolled ? (
 
-                                                    <button
-                                                        className="class-attendance-button"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/attendance?sessionId=${classData.activeSession._id}`
-                                                            )
-                                                        }
-                                                    >
-                                                        Mark Attendance
-                                                    </button>
+                                                    <>
+                                                        <span className="active-badge">
+                                                            <span></span>
+                                                            Attendance Open
+                                                        </span>
 
-                                                </>
+                                                        <button
+                                                            className="class-attendance-button"
+                                                            onClick={() =>
+                                                                navigate(
+                                                                    `/attendance?sessionId=${classData.activeSession._id}`
+                                                                )
+                                                            }
+                                                        >
+                                                            Mark Attendance
+                                                        </button>
+                                                    </>
+
+                                                ) : (
+
+                                                    <>
+                                                        <span className="active-badge">
+                                                            <span></span>
+                                                            Attendance Open
+                                                        </span>
+
+                                                        <button
+                                                            className="class-attendance-button"
+                                                            onClick={() =>
+                                                                navigate(
+                                                                    "/face-enrollment"
+                                                                )
+                                                            }
+                                                        >
+                                                            Register Face
+                                                        </button>
+                                                    </>
+
+                                                )
+
                                             ) : (
 
                                                 <span className="inactive-badge">
@@ -526,22 +745,32 @@ function Dashboard() {
 
                 </section>
 
+
                 {/* Recent attendance */}
+
                 <section className="dashboard-panel attendance-history">
 
                     <div className="attendance-history-header">
 
                         <div>
-                            <h2>Recent Attendance</h2>
-                            <p>Your latest attendance records</p>
+                            <h2>
+                                Recent Attendance
+                            </h2>
+
+                            <p>
+                                Your latest attendance records
+                            </p>
                         </div>
 
                         <span>
                             {totalClasses} record
-                            {totalClasses !== 1 ? "s" : ""}
+                            {totalClasses !== 1
+                                ? "s"
+                                : ""}
                         </span>
 
                     </div>
+
 
                     {loading ? (
 
@@ -600,6 +829,7 @@ function Dashboard() {
                                         </div>
 
                                     </div>
+
 
                                     <span
                                         className={

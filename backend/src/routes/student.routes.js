@@ -17,6 +17,13 @@ router.post(
     authorize("student"),
     createStudent
 );
+router.get(
+    "/me", 
+    protect, 
+    authorize("student"), 
+    getMyStudentProfile
+);
+
 router.put(
     "/me",
     protect,

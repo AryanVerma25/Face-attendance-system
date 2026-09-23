@@ -344,3 +344,163 @@
         grid-template-columns: 1fr;
     }
 }
+/* Liveness / Verification */
+
+.liveness-box {
+    margin-top: 16px;
+    padding: 16px 18px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+
+    background: #fafafa;
+
+    text-align: center;
+}
+
+.liveness-box strong {
+    display: block;
+
+    margin-bottom: 5px;
+
+    font-size: 15px;
+    font-weight: 650;
+
+    color: #111827;
+}
+
+.liveness-box span {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.verification-status {
+    margin-top: 16px;
+    padding: 13px 15px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+
+    background: #f9fafb;
+
+    text-align: center;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    color: #374151;
+}
+
+
+/* Success */
+
+.attendance-success {
+    margin-top: 16px;
+    padding: 13px 15px;
+
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+
+    background: #f0fdf4;
+
+    color: #15803d;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+
+/* Camera control */
+
+.camera-control-button {
+    width: 100%;
+
+    margin-top: 10px;
+    padding: 14px 20px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+
+    background: #ffffff;
+    color: #374151;
+
+    font-size: 14px;
+    font-weight: 650;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.camera-control-button:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+.camera-control-button:disabled,
+.start-camera-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.start-camera-button:disabled:hover {
+    background: #111827;
+    transform: none;
+}
+
+
+/* Camera overlay */
+
+.camera-container {
+    position: relative;
+}
+
+
+/* Face guide */
+
+.camera-container::after {
+    content: "";
+
+    position: absolute;
+
+    width: 220px;
+    height: 280px;
+
+    top: 50%;
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    border: 2px solid rgba(255, 255, 255, 0.75);
+    border-radius: 48%;
+
+    pointer-events: none;
+
+    box-shadow:
+        0 0 0 9999px rgba(0, 0, 0, 0.08);
+}
+
+
+/* Don't show guide when camera is off */
+
+.camera-container:has(.camera-placeholder)::after {
+    display: none;
+}
+
+
+/* Mobile */
+
+@media (max-width: 700px) {
+
+    .camera-container::after {
+        width: 170px;
+        height: 230px;
+    }
+
+    .liveness-box {
+        padding: 14px;
+    }
+}

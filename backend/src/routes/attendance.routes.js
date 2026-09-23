@@ -2,6 +2,7 @@ const express = require("express");
 
 const {
     markAttendance,
+    markAttendanceByFace,
     getSessionAttendance,
     getStudentAttendance,
     getStudentAttendanceSummary,
@@ -18,6 +19,12 @@ router.post(
     protect,
     authorize("faculty"),
     markAttendance
+);
+router.post(
+    "/mark",
+    protect,
+    authorize("student"),
+    markAttendanceByFace
 );
 router.get(
     "/session/:sessionId",
