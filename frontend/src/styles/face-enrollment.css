@@ -1,0 +1,197 @@
+.face-enrollment-page {
+    min-height: 100vh;
+    background: #f5f7fb;
+}
+
+.face-enrollment-navbar {
+    height: 70px;
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.face-enrollment-back {
+    border: none;
+    background: transparent;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.face-enrollment-logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.face-enrollment-content {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 60px 20px;
+}
+
+.face-enrollment-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.face-enrollment-tag {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #6b7280;
+}
+
+.face-enrollment-header h1 {
+    margin: 0 0 10px;
+    font-size: 34px;
+    color: #111827;
+}
+
+.face-enrollment-header p:last-child {
+    margin: 0;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.face-enrollment-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+}
+
+.face-camera-container {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.face-enrollment-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.face-camera-placeholder {
+    text-align: center;
+    color: #ffffff;
+    padding: 20px;
+}
+
+.face-camera-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.face-camera-placeholder h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+}
+
+.face-camera-placeholder p {
+    margin: 0;
+    color: #d1d5db;
+}
+
+.face-enrollment-error,
+.face-enrollment-success {
+    margin-top: 20px;
+    padding: 13px 15px;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+.face-enrollment-error {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.face-enrollment-success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.face-enrollment-button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #111827;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.face-enrollment-button:hover {
+    background: #1f2937;
+}
+
+.face-enrollment-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.face-enrollment-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.face-enrollment-actions .face-enrollment-button {
+    margin-top: 20px;
+}
+
+.face-enrollment-secondary {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.face-enrollment-secondary:hover {
+    background: #f9fafb;
+}
+
+.face-enrollment-note {
+    margin: 20px 0 0;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #9ca3af;
+}
+
+@media (max-width: 600px) {
+    .face-enrollment-navbar {
+        padding: 0 20px;
+    }
+
+    .face-enrollment-content {
+        padding: 40px 15px;
+    }
+
+    .face-enrollment-card {
+        padding: 20px;
+    }
+
+    .face-enrollment-header h1 {
+        font-size: 28px;
+    }
+}
