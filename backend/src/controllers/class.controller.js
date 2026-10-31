@@ -1,6 +1,13 @@
-const Class = require("../models/Class");
 
-const createClass = async (req, res) => {
+const Class = require("../models/Class");
+const Student = require("../models/Student");
+const Session = require("../models/Session");
+
+// ==========================================
+// CREATE CLASS
+// ==========================================
+
+exports.createClass = async (req, res) => {
     try {
         const { name, code } = req.body;
 
@@ -13,8 +20,8 @@ const createClass = async (req, res) => {
         const existingClass = await Class.findOne({ code });
 
         if (existingClass) {
-            return res.status(409).json({
-                message: "Class with this code already exists"
+            return res.status(400).json({
+                message: "Class code already exists"
             });
         }
 
@@ -29,15 +36,154 @@ const createClass = async (req, res) => {
             message: "Class created successfully",
             class: newClass
         });
+
     } catch (error) {
+        console.error("CREATE CLASS ERROR:", error);
+
         res.status(500).json({
-            message: "Server error",
-            error: error.message
+            message: "Failed to create class"
         });
     }
 };
 
-const addStudentToClass = async (req, res) => {
+
+// ==========================================
+// GET FACULTY'S CLASSES
+// ==========================================
+
+exports.getMyClasses = async (req, res) => {
+    try {
+        const classes = await Class.find({
+            faculty: req.user._id
+        }).sort({ createdAt: -1 });
+
+        res.status(200).json({
+            message: "Classes fetched successfully",
+            classes
+        });
+
+    } catch (error) {
+        console.error("GET MY CLASSES ERROR:", error);
+
+        res.status(500).json({
+            message: "Failed to fetch classes"
+        });
+    }
+};
+
+
+// ==========================================
+// GET STUDENT'S ENROLLED CLASSES
+// ==========================================
+
+exports.getMyEnrolledClasses = async (req, res) => {
+    try {
+        // Find logged-in student's profile
+        const student = await Student.findOne({
+            user: req.user._id
+        });
+
+        if (!student) {
+            return res.status(404).json({
+                message: "Student profile not found"
+            });
+        }
+
+        // Find classes containing this student
+        const classes = await Class.find({
+            students: student._id
+        })
+            .populate("faculty", "name email")
+            .sort({ createdAt: -1 });
+
+        // Attach active session to each class
+        const classesWithSessions = await Promise.all(
+            classes.map(async (classItem) => {
+
+                const activeSession = await Session.findOne({
+                    class: classItem._id,
+                    status: "active"
+                }).sort({ startedAt: -1 });
+
+                return {
+                    _id: classItem._id,
+                    id: classItem._id,
+                    name: classItem.name,
+                    code: classItem.code,
+                    faculty: classItem.faculty,
+                    activeSession: activeSession || null
+                };
+            })
+        );
+
+        res.status(200).json({
+            message: "Student classes fetched successfully",
+            classes: classesWithSessions
+        });
+
+    } catch (error) {
+        console.error("GET STUDENT CLASSES ERROR:", error);
+
+        res.status(500).json({
+            message: "Failed to fetch student classes"
+        });
+    }
+};
+
+
+// ==========================================
+// GET CLASS DETAILS
+// ==========================================
+
+exports.getClassDetails = async (req, res) => {
+    try {
+        const { classId } = req.params;
+
+        const classData = await Class.findById(classId)
+            .populate({
+                path: "students",
+                select: "studentId enrollmentNumber department semester user",
+                populate: {
+                    path: "user",
+                    select: "name email"
+                }
+            });
+
+        if (!classData) {
+            return res.status(404).json({
+                message: "Class not found"
+            });
+        }
+
+        if (
+            classData.faculty.toString() !==
+            req.user._id.toString()
+        ) {
+            return res.status(403).json({
+                message: "You are not authorized to view this class"
+            });
+        }
+
+        res.status(200).json({
+            message: "Class details fetched successfully",
+            class: classData
+        });
+
+    } catch (error) {
+        console.error("GET CLASS DETAILS ERROR:", error);
+
+        res.status(500).json({
+            message: "Failed to fetch class details"
+        });
+    }
+};
+
+
+// ==========================================
+// ADD STUDENT TO CLASS
+// ==========================================
+
+exports.addStudentToClass = async (req, res) => {
     try {
         const { classId } = req.params;
         const { studentId } = req.body;
@@ -56,15 +202,18 @@ const addStudentToClass = async (req, res) => {
             });
         }
 
-        if (classData.faculty.toString() !== req.user._id.toString()) {
+        if (
+            classData.faculty.toString() !==
+            req.user._id.toString()
+        ) {
             return res.status(403).json({
                 message: "You are not authorized to modify this class"
             });
         }
 
-        const Student = require("../models/Student");
-
-        const student = await Student.findOne({ studentId });
+        const student = await Student.findOne({
+            studentId
+        });
 
         if (!student) {
             return res.status(404).json({
@@ -72,9 +221,13 @@ const addStudentToClass = async (req, res) => {
             });
         }
 
-        if (classData.students.includes(student._id)) {
-            return res.status(409).json({
-                message: "Student already enrolled in this class"
+        const alreadyEnrolled = classData.students.some(
+            (id) => id.toString() === student._id.toString()
+        );
+
+        if (alreadyEnrolled) {
+            return res.status(400).json({
+                message: "Student is already enrolled in this class"
             });
         }
 
@@ -86,110 +239,12 @@ const addStudentToClass = async (req, res) => {
             message: "Student added to class successfully",
             class: classData
         });
-    } catch (error) {
-        res.status(500).json({
-            message: "Server error",
-            error: error.message
-        });
-    }
-};
-
-const getClassDetails = async (req, res) => {
-    try {
-        const { classId } = req.params;
-
-        const classData = await Class.findById(classId)
-            .populate("faculty", "name email")
-            .populate(
-                "students",
-                "studentId enrollmentNumber department semester"
-            );
-
-        if (!classData) {
-            return res.status(404).json({
-                message: "Class not found"
-            });
-        }
-
-        if (classData.faculty._id.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                message: "You are not authorized to view this class"
-            });
-        }
-
-        res.status(200).json({
-            message: "Class details fetched successfully",
-            class: classData
-        });
-    } catch (error) {
-        res.status(500).json({
-            message: "Server error",
-            error: error.message
-        });
-    }
-};
-const getMyClasses = async (req, res) => {
-    try {
-        const Student = require("../models/Student");
-        const Session = require("../models/Session");
-
-        // Find the student profile of the logged-in user
-        const student = await Student.findOne({
-            user: req.user._id
-        });
-
-        if (!student) {
-            return res.status(404).json({
-                message: "Student profile not found"
-            });
-        }
-
-        // Find classes in which this student is enrolled
-        const classes = await Class.find({
-            students: student._id
-        }).populate("faculty", "name email");
-
-        // Find active sessions for those classes
-        const classIds = classes.map((classData) => classData._id);
-
-        const activeSessions = await Session.find({
-            class: { $in: classIds },
-            status: "active"
-        });
-
-        // Attach active session to each class
-        const classesWithSessions = classes.map((classData) => {
-
-            const activeSession = activeSessions.find(
-                (session) =>
-                    session.class.toString() === classData._id.toString()
-            );
-
-            return {
-                id: classData._id,
-                name: classData.name,
-                code: classData.code,
-                faculty: classData.faculty,
-                activeSession: activeSession || null
-            };
-        });
-
-        res.status(200).json({
-            message: "Student classes fetched successfully",
-            classes: classesWithSessions
-        });
 
     } catch (error) {
+        console.error("ADD STUDENT ERROR:", error);
+
         res.status(500).json({
-            message: "Server error",
-            error: error.message
+            message: "Failed to add student"
         });
     }
-};
-
-module.exports = {
-    createClass,
-    addStudentToClass,
-    getClassDetails,
-    getMyClasses
 };

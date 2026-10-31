@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import GoogleSignInButton from "../components/GoogleSignInButton";
 import api from "../services/api";
 import "../styles/auth.css";
 
@@ -10,6 +9,7 @@ function Register() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -20,20 +20,15 @@ function Register() {
         setLoading(true);
 
         try {
-            const response = await api.post("/auth/register", {
+            await api.post("/auth/register", {
                 name,
                 email,
-                password
+                password,
+                role: "student"
             });
 
-            localStorage.setItem("token", response.data.token);
-
-            localStorage.setItem(
-                "user",
-                JSON.stringify(response.data.user)
-            );
-
-            navigate("/dashboard");
+            // Registration successful
+            navigate("/login");
 
         } catch (error) {
             setError(
@@ -49,6 +44,7 @@ function Register() {
         <div className="auth-page">
 
             {/* Left Side */}
+
             <div className="auth-brand">
 
                 <Link to="/" className="auth-logo">
@@ -58,34 +54,34 @@ function Register() {
                 <div className="auth-brand-content">
 
                     <p className="auth-tag">
-                        JOIN FACESECURE
+                        SMART FACE-BASED ATTENDANCE
                     </p>
 
                     <h1>
-                        Start using
-                        <span> smarter attendance.</span>
+                        Create your
+                        <span> FaceSecure account.</span>
                     </h1>
 
                     <p>
-                        Create your student account and get access to
-                        your attendance records and FaceSecure services.
+                        Register as a student and access
+                        secure face-based attendance.
                     </p>
 
                     <div className="auth-features">
 
                         <div>
                             <span>✓</span>
-                            Secure student profile
+                            Face recognition
                         </div>
 
                         <div>
                             <span>✓</span>
-                            Face enrollment support
+                            Liveness verification
                         </div>
 
                         <div>
                             <span>✓</span>
-                            Attendance history
+                            Secure attendance records
                         </div>
 
                     </div>
@@ -94,7 +90,9 @@ function Register() {
 
             </div>
 
+
             {/* Right Side */}
+
             <div className="auth-form-container">
 
                 <div className="auth-form-card">
@@ -110,14 +108,18 @@ function Register() {
                         </h2>
 
                         <p>
-                            Register as a student to get started.
+                            Register to get started.
                         </p>
 
                     </div>
 
+
                     <form onSubmit={handleRegister}>
 
+                        {/* Name */}
+
                         <div className="form-group">
+
                             <label htmlFor="name">
                                 Full name
                             </label>
@@ -128,12 +130,19 @@ function Register() {
                                 placeholder="Enter your full name"
                                 autoComplete="name"
                                 value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                onChange={(e) =>
+                                    setName(e.target.value)
+                                }
                                 required
                             />
+
                         </div>
 
+
+                        {/* Email */}
+
                         <div className="form-group">
+
                             <label htmlFor="email">
                                 Email address
                             </label>
@@ -144,12 +153,19 @@ function Register() {
                                 placeholder="Enter your email"
                                 autoComplete="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) =>
+                                    setEmail(e.target.value)
+                                }
                                 required
                             />
+
                         </div>
 
+
+                        {/* Password */}
+
                         <div className="form-group">
+
                             <label htmlFor="password">
                                 Password
                             </label>
@@ -160,51 +176,66 @@ function Register() {
                                 placeholder="Create a password"
                                 autoComplete="new-password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) =>
+                                    setPassword(e.target.value)
+                                }
                                 required
                             />
+
                         </div>
 
+
+                        {/* Error */}
+
                         {error && (
-                            <p style={{
-                                color: "#dc2626",
-                                fontSize: "14px",
-                                marginBottom: "16px"
-                            }}>
+                            <p
+                                style={{
+                                    color: "#dc2626",
+                                    fontSize: "14px",
+                                    marginBottom: "16px"
+                                }}
+                            >
                                 {error}
                             </p>
                         )}
+
+
+                        {/* Register */}
 
                         <button
                             type="submit"
                             className="auth-submit"
                             disabled={loading}
                         >
-                            {loading ? "Creating Account..." : "Create Account"}
+                            {loading
+                                ? "Creating Account..."
+                                : "Create Account"}
                         </button>
 
                     </form>
 
-                    {/* Google Register */}
-                    <div className="auth-divider">
-                        <span>OR</span>
-                    </div>
 
-                    <div className="google-login">
-                        <GoogleSignInButton />
-                    </div>
+                    {/* Login */}
 
                     <div className="auth-switch">
+
                         Already have an account?
+
                         <Link to="/login">
-                            Sign in
+                            Sign In
                         </Link>
+
                     </div>
 
+
+                    {/* Back */}
+
                     <div className="auth-back">
+
                         <Link to="/">
                             ← Back to FaceSecure
                         </Link>
+
                     </div>
 
                 </div>

@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const sessionSchema = new mongoose.Schema(
@@ -16,13 +17,23 @@ const sessionSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: ["active", "closed"],
-            default: "active"
+            enum: ["scheduled", "active", "closed"],
+            default: "scheduled"
+        },
+
+        scheduledStartAt: {
+            type: Date,
+            default: null
+        },
+
+        scheduledEndAt: {
+            type: Date,
+            default: null
         },
 
         startedAt: {
             type: Date,
-            default: Date.now
+            default: null
         },
 
         endedAt: {

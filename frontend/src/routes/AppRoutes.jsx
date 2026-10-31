@@ -3,10 +3,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "../pages/LandingPage";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
+
 import StudentProfile from "../pages/StudentProfile";
 import FaceEnrollment from "../pages/FaceEnrollment";
 import Dashboard from "../pages/Dashboard";
 import Attendance from "../pages/Attendance";
+
+import FacultyDashboard from "../pages/FacultyDashboard";
+import FacultyClassDetails from "../pages/FacultyClassDetails";
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -15,7 +19,9 @@ function AppRoutes() {
         <BrowserRouter>
             <Routes>
 
-                {/* Public Routes */}
+                {/* =========================
+                    Public Routes
+                ========================= */}
 
                 <Route
                     path="/"
@@ -33,7 +39,9 @@ function AppRoutes() {
                 />
 
 
-                {/* Protected Student Profile */}
+                {/* =========================
+                    Student Routes
+                ========================= */}
 
                 <Route
                     path="/student-profile"
@@ -44,9 +52,6 @@ function AppRoutes() {
                     }
                 />
 
-
-                {/* Protected Face Enrollment */}
-
                 <Route
                     path="/face-enrollment"
                     element={
@@ -55,9 +60,6 @@ function AppRoutes() {
                         </ProtectedRoute>
                     }
                 />
-
-
-                {/* Protected Student Dashboard */}
 
                 <Route
                     path="/dashboard"
@@ -68,14 +70,36 @@ function AppRoutes() {
                     }
                 />
 
-
-                {/* Protected Attendance Page */}
-
                 <Route
                     path="/attendance"
                     element={
                         <ProtectedRoute>
                             <Attendance />
+                        </ProtectedRoute>
+                    }
+                />
+
+
+                {/* =========================
+                    Faculty Routes
+                ========================= */}
+
+                {/* Faculty Dashboard */}
+                <Route
+                    path="/faculty/dashboard"
+                    element={
+                        <ProtectedRoute>
+                            <FacultyDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Faculty Class Details */}
+                <Route
+                    path="/faculty/classes/:classId"
+                    element={
+                        <ProtectedRoute>
+                            <FacultyClassDetails />
                         </ProtectedRoute>
                     }
                 />

@@ -1,9 +1,13 @@
+
 const express = require("express");
 
 const {
+    scheduleSession,
     startSession,
+    startScheduledSession,
     closeSession,
-    getSessionDetails
+    getSessionDetails,
+    getMySessions
 } = require("../controllers/session.controller");
 
 const protect = require("../middleware/auth.middleware");
@@ -11,6 +15,23 @@ const authorize = require("../middleware/role.middleware");
 
 const router = express.Router();
 
+// Get all sessions belonging to logged-in faculty
+router.get(
+    "/my-sessions",
+    protect,
+    authorize("faculty"),
+    getMySessions
+);
+
+// Schedule a new attendance session
+router.post(
+    "/schedule",
+    protect,
+    authorize("faculty"),
+    scheduleSession
+);
+
+// Start an immediate attendance session
 router.post(
     "/",
     protect,
@@ -18,6 +39,15 @@ router.post(
     startSession
 );
 
+// Start an already scheduled session
+router.patch(
+    "/:sessionId/start",
+    protect,
+    authorize("faculty"),
+    startScheduledSession
+);
+
+// Fetch session details
 router.get(
     "/:sessionId",
     protect,
@@ -25,6 +55,7 @@ router.get(
     getSessionDetails
 );
 
+// Close an active session
 router.patch(
     "/:sessionId/close",
     protect,

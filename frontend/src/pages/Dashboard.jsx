@@ -33,7 +33,7 @@ function Dashboard() {
                     faceStatusResponse
                 ] = await Promise.all([
                     api.get("/attendance/me"),
-                    api.get("/classes/my-classes"),
+                    api.get("/classes/my-enrolled-classes"),
                     api.get("/face/status")
                 ]);
 

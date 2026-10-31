@@ -1,10 +1,12 @@
+
 const express = require("express");
 
 const {
     createClass,
-    addStudentToClass,
+    getMyClasses,
+    getMyEnrolledClasses,
     getClassDetails,
-    getMyClasses
+    addStudentToClass
 } = require("../controllers/class.controller");
 
 const protect = require("../middleware/auth.middleware");
@@ -12,24 +14,54 @@ const authorize = require("../middleware/role.middleware");
 
 const router = express.Router();
 
+// ==========================================
+// CREATE CLASS - FACULTY
+// ==========================================
+
 router.post(
     "/",
     protect,
     authorize("faculty"),
     createClass
 );
+
+// ==========================================
+// GET FACULTY'S CLASSES
+// ==========================================
+
+router.get(
+    "/my-classes",
+    protect,
+    authorize("faculty"),
+    getMyClasses
+);
+
+// ==========================================
+// GET STUDENT'S ENROLLED CLASSES
+// ==========================================
+
+router.get(
+    "/my-enrolled-classes",
+    protect,
+    authorize("student"),
+    getMyEnrolledClasses
+);
+
+// ==========================================
+// ADD STUDENT TO CLASS - FACULTY
+// ==========================================
+
 router.post(
     "/:classId/students",
     protect,
     authorize("faculty"),
     addStudentToClass
 );
-router.get(
-    "/my-classes",
-    protect,
-    authorize("student"),
-    getMyClasses
-);
+
+// ==========================================
+// GET CLASS DETAILS - FACULTY
+// ==========================================
+
 router.get(
     "/:classId",
     protect,

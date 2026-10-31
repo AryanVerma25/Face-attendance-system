@@ -24,14 +24,24 @@ function Login() {
                 password
             });
 
-            localStorage.setItem("token", response.data.token);
+            // Save authentication token
+            localStorage.setItem(
+                "token",
+                response.data.token
+            );
 
+            // Save logged-in user
             localStorage.setItem(
                 "user",
                 JSON.stringify(response.data.user)
             );
 
-            navigate("/dashboard");
+            // Redirect based on role
+            if (response.data.user.role === "faculty") {
+                navigate("/faculty/dashboard");
+            } else {
+                navigate("/dashboard");
+            }
 
         } catch (error) {
             setError(
@@ -92,6 +102,7 @@ function Login() {
 
             </div>
 
+
             {/* Right Side */}
             <div className="auth-form-container">
 
@@ -113,9 +124,11 @@ function Login() {
 
                     </div>
 
+
                     <form onSubmit={handleLogin}>
 
                         <div className="form-group">
+
                             <label htmlFor="email">
                                 Email address
                             </label>
@@ -126,12 +139,17 @@ function Login() {
                                 placeholder="Enter your email"
                                 autoComplete="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) =>
+                                    setEmail(e.target.value)
+                                }
                                 required
                             />
+
                         </div>
 
+
                         <div className="form-group">
+
                             <label htmlFor="password">
                                 Password
                             </label>
@@ -142,32 +160,43 @@ function Login() {
                                 placeholder="Enter your password"
                                 autoComplete="current-password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) =>
+                                    setPassword(e.target.value)
+                                }
                                 required
                             />
+
                         </div>
 
+
                         {error && (
-                            <p style={{
-                                color: "#dc2626",
-                                fontSize: "14px",
-                                marginBottom: "16px"
-                            }}>
+                            <p
+                                style={{
+                                    color: "#dc2626",
+                                    fontSize: "14px",
+                                    marginBottom: "16px"
+                                }}
+                            >
                                 {error}
                             </p>
                         )}
+
 
                         <button
                             type="submit"
                             className="auth-submit"
                             disabled={loading}
                         >
-                            {loading ? "Signing In..." : "Sign In"}
+                            {loading
+                                ? "Signing In..."
+                                : "Sign In"}
                         </button>
 
                     </form>
 
+
                     {/* Google Login */}
+
                     <div className="auth-divider">
                         <span>OR</span>
                     </div>
@@ -176,18 +205,28 @@ function Login() {
                         <GoogleSignInButton />
                     </div>
 
+
                     {/* Register Link */}
+
                     <div className="auth-switch">
+
                         Don't have an account?
+
                         <Link to="/register">
                             Register
                         </Link>
+
                     </div>
 
+
+                    {/* Back */}
+
                     <div className="auth-back">
+
                         <Link to="/">
                             ← Back to FaceSecure
                         </Link>
+
                     </div>
 
                 </div>
